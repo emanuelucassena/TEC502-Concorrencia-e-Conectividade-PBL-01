@@ -33,8 +33,16 @@ func AtualizarStatus(equip *shared.Equipamento){
 }
 
 func SimularTemperatura(equip *shared.Equipamento){
+	
 	if equip.Ligado {
-		equip.TempAtual += rand.Float64()*0.2 - 0.1
+		chance := rand.Float64()
+		if chance < 0.70 {
+			equip.TempAtual += 0.0
+		}else if chance < 0.90{
+			equip.TempAtual += 0.1
+		}else{
+			equip.TempAtual -= 0.1
+		}
 	}else{
 		equip.TempAtual += 0.1
 	}
