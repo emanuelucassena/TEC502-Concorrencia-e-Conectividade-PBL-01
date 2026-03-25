@@ -10,6 +10,7 @@ type TipoEquipamento string
 const(
 	Geladeira TipoEquipamento = "geladeira"
 	Freezer TipoEquipamento = "freezer"
+
 )
 
 type StatusEquipamento string

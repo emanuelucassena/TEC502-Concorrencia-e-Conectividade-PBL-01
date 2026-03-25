@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net"
 	"os"
 	"strconv"
@@ -56,18 +55,23 @@ func main() {
 
 	fmt.Printf("Sensor %d (%s do tipo %s) ligado e enviando para %s!\n", idSensor, nome, tipoSensor, hostIntegrador)
 
+	equip := shared.NovoEquipamento(idSensor, nome, shared.TipoEquipamento(tipoSensor), tempMin, tempMax)
+
 	for {
 		if !ligado {
 			break
 		}
 
 		
-		temperatura := tempMin + rand.Float64()*(tempMax-tempMin)
+		shared.SimularTemperatura(&equip)
 
 		
 		leitura := shared.Leitura{
 			EquipamentoID: idSensor,
-			Temperatura:   temperatura,
+			TipoEquipamento: shared.TipoEquipamento(tipoSensor),
+			Temperatura:   equip.TempAtual,
+			TempMin: tempMin,
+			TempMax: tempMax,
 			Umidade:       50.0, 
 			Timestamp:     time.Now(),
 		}
@@ -87,7 +91,7 @@ func main() {
 
 		
 		conn.Write(jsonBytes)
-		fmt.Printf("Sensor %d -> %.1f°C enviado\n", idSensor, temperatura)
+		fmt.Printf("Sensor %d -> %.1f°C enviado\n", idSensor, equip.TempAtual)
 
 		time.Sleep(1 * time.Second)
 	}

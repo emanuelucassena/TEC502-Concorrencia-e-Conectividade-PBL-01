@@ -5,13 +5,15 @@ import "time"
 type TipoComando string
 
 const(
-	LigarEquipamento TipoComando = "ligar_equipamento"
+	LigarEquipamento    TipoComando = "ligar_equipamento"
 	DesligarEquipamento TipoComando = "desligar_equipamento"
-	ResetarAlarme TipoComando = "resetar_alarme"
+	ResetarAlarme       TipoComando = "resetar_alarme"
+	AumentarTemperatura TipoComando = "aumentar_temperatura"
+	DiminuirTemperatura TipoComando = "diminuir_temperatura"
 )
 
 type Comando struct{
-	EquipamentoID int `json:"equipamento_id"`
-	Tipo TipoComando `json:"tipo"`
-	Timestamp time.Time `json:"timestamp"`
+	EquipamentoID int         `json:"equipamento_id"`
+	Tipo          TipoComando `json:"tipo"`
+	Timestamp     time.Time   `json:"timestamp"`
 }
