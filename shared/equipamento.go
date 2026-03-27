@@ -62,16 +62,20 @@ func AtualizarStatus(equip *Equipamento){
 
 func SimularTemperatura(equip *Equipamento){
 	if equip.Ligado {
+		
 		chance := rand.Float64()
-		if chance < 0.70 {
-			equip.TempAtual += 0.0
-		} else if chance < 0.90 {
-			equip.TempAtual += 0.1
+		if chance < 0.60 {
+			equip.TempAtual -= 0.3 
 		} else {
-			equip.TempAtual -= 0.1
+			equip.TempAtual -= 0.1 
 		}
 	} else {
-		// Se desligado, a temperatura sobe
-		equip.TempAtual += 0.1
+		
+		chance := rand.Float64()
+		if chance < 0.60 {
+			equip.TempAtual += 0.3 // 
+		} else {
+			equip.TempAtual += 0.1 // 
+		}
 	}
 }

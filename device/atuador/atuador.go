@@ -21,6 +21,19 @@ func handleComando(conn net.Conn, id string) {
 
 	
 	fmt.Printf(">>> ATUADOR %s RECEBEU COMANDO: %s às %v\n", id, cmd.Tipo, cmd.Timestamp)
+
+	connSensor, err := net.Dial("tcp", "localhost:7001")
+		if err != nil {
+			fmt.Println("[ERRO] Atuador tentou ligar, mas o Sensor não atendeu na porta 7001:", err)
+		} else {
+			
+			
+			
+			json.NewEncoder(connSensor).Encode(cmd)
+			connSensor.Close()
+			
+			fmt.Println(">>> ATUADOR REPASSOU A ORDEM FISICA PARA O SENSOR COM SUCESSO!")
+		}
 	
 	if cmd.Tipo == shared.DesligarEquipamento {
 		fmt.Printf("!!! AVISO: Equipamento %d sendo DESLIGADO !!!\n", cmd.EquipamentoID)
@@ -51,4 +64,7 @@ func main(){
 
 		go handleComando(conn, idAtuador)
 	}
+
+
+	
 }

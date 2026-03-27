@@ -10,40 +10,77 @@ import (
 	"rota-das-coisas/shared" 
 )
 
+func escutarAtuador(porta string, equip *shared.Equipamento){
+	listener, err := net.Listen("tcp", ":"+ porta)
+		if err != nil {
+			fmt.Printf("[ERRO!] NÃO FOI POSSÍVEL ABRIR A PORTA %s: %v\n", porta, err)
+			return
+		}
+		defer listener.Close()
+		fmt.Printf("[INFO] Sensor ouvindo o Atuador na porta %s...\n", porta)
+
+		for{
+			conn, err := listener.Accept()
+				if err != nil {
+					continue
+				}
+			var cmd shared.Comando
+			json.NewDecoder(conn).Decode(&cmd)
+			conn.Close()
+
+			fmt.Printf("\n [COMANDO] ATUADOR ORDENOU: %s\n", cmd.Tipo)
+
+			if cmd.Tipo == "diminuir_temperatura"  {
+				equip.Ligado = true
+				fmt.Println("[STATUS] Compressor LIGADO. Esfriando...")
+
+			}else if cmd.Tipo == "aumentar_temperatura" || cmd.Tipo == "resetar_alarme" {
+			equip.Ligado = false
+			fmt.Println("[STATUS] Compressor DESLIGADO.")
+		}
+		}
+	}
+
+
+
+
 func main() {
-	idSensorStr := os.Getenv("ID_SENSOR")
-	tipoSensor := os.Getenv("TIPO_SENSOR")
-	nome := os.Getenv("NOME")
-
-
-	idSensor, err := strconv.Atoi(idSensorStr)
+	idStr := os.Getenv("ID_SENSOR")
+	idSensor, err := strconv.Atoi(idStr)
 	if err != nil {
-		fmt.Println("erro ao converter ID_SENSOR:", err)
+		fmt.Println("[ERRO FATAL] ID_SENSOR inválido ou não informado:", err)
 		return
 	}
 
-	
+	nome := os.Getenv("NOME")
+	tipoSensor := os.Getenv("TIPO_SENSOR")
+
 	tempMinStr := os.Getenv("TEMP_MIN")
 	tempMin, err := strconv.ParseFloat(tempMinStr, 64)
 	if err != nil {
-		fmt.Println("erro ao converter TEMP_MIN:", err)
+		fmt.Println("[ERRO FATAL] TEMP_MIN inválido ou não informado:", err)
 		return
 	}
 
 	tempMaxStr := os.Getenv("TEMP_MAX")
 	tempMax, err := strconv.ParseFloat(tempMaxStr, 64)
 	if err != nil {
-		fmt.Println("erro ao converter TEMP_MAX:", err)
+		fmt.Println("[ERRO FATAL] TEMP_MAX inválido ou não informado:", err)
 		return
 	}
 
+	equip := shared.NovoEquipamento(idSensor, nome, shared.TipoEquipamento(tipoSensor), tempMin, tempMax)
+	equip.Ligado = false
+
+	go escutarAtuador("7001", &equip)
+
+	
 	
 	hostIntegrador := os.Getenv("HOST_INTEGRADOR")
 	if hostIntegrador == "" {
 		hostIntegrador = "localhost:9090"
 	}
 
-	ligado := true
 
 	
 	conn, err := net.Dial("udp", hostIntegrador)
@@ -55,13 +92,9 @@ func main() {
 
 	fmt.Printf("Sensor %d (%s do tipo %s) ligado e enviando para %s!\n", idSensor, nome, tipoSensor, hostIntegrador)
 
-	equip := shared.NovoEquipamento(idSensor, nome, shared.TipoEquipamento(tipoSensor), tempMin, tempMax)
 
 	for {
-		if !ligado {
-			break
-		}
-
+		
 		
 		shared.SimularTemperatura(&equip)
 
@@ -91,8 +124,16 @@ func main() {
 
 		
 		conn.Write(jsonBytes)
-		fmt.Printf("Sensor %d -> %.1f°C enviado\n", idSensor, equip.TempAtual)
+		
+		status := "DESLIGADO"
+		if equip.Ligado {
+			status = "LIGADO"
+		}
+		fmt.Printf("Sensor %d -> %.1f°C | Compressor: [%s]\n", idSensor, equip.TempAtual, status)
+		
 
 		time.Sleep(1 * time.Second)
 	}
+
+
 }
