@@ -11,7 +11,7 @@ import (
 )
 
 func escutarAtuador(porta string, equip *shared.Equipamento){
-	listener, err := net.Listen("tcp", ":"+ porta)
+	listener, err := net.Listen("tcp", porta)
 		if err != nil {
 			fmt.Printf("[ERRO!] NÃO FOI POSSÍVEL ABRIR A PORTA %s: %v\n", porta, err)
 			return
@@ -72,7 +72,9 @@ func main() {
 	equip := shared.NovoEquipamento(idSensor, nome, shared.TipoEquipamento(tipoSensor), tempMin, tempMax)
 	equip.Ligado = false
 
-	go escutarAtuador("7001", &equip)
+	portaParaOuvir := fmt.Sprintf(":%d", 7000 + idSensor)
+
+	go escutarAtuador(portaParaOuvir, &equip)
 
 	
 	

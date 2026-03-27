@@ -6,23 +6,31 @@ import (
 	"net"
 	"sync"
 	"time"
+	"os"
 	"rota-das-coisas/shared" 
 )
 
 
 // Esse mapa guarda a última leitura de cada sensor pelo seu ID.
-var mapaSensores = make(map[int]shared.Leitura)
+var historico = make(map[int][]shared.Leitura)
 
 
 // precisamos trancar o mapa na hora de escrever para o Go não dar crash.
-var mu sync.Mutex
+var mutex sync.Mutex
+
+func salvarHistorico(){
+	dados, err := json.MarshalIndent(historico, "", " ")
+	if err == nil {
+		os.WriteFile("historico.json", dados, 0644)
+	}
+}
 
 func main() {
 	fmt.Println("=== Iniciando Serviço de Integração ===")
 
-	go iniciarServidorUDP(":9090")
+	iniciarServidorUDP(":9090")
 
-	iniciarServidorTCP(":8080")
+	//iniciarServidorTCP(":8080")
 }
 
 
@@ -76,20 +84,25 @@ func processarTelemetria(payload []byte, addr *net.UDPAddr) {
 	json.Unmarshal(payloadBytes, &leitura)
 
 	// fechando o mapa para atualizar 
-	mu.Lock()
-	mapaSensores[leitura.EquipamentoID] = leitura
-	mu.Unlock() 
+	mutex.Lock()
+	historico[leitura.EquipamentoID] = append(historico[leitura.EquipamentoID], leitura)
+
+	if len(historico[leitura.EquipamentoID]) > 30 {
+		historico[leitura.EquipamentoID] = historico[leitura.EquipamentoID][1:]
+	}
+	mutex.Unlock()
+
+	salvarHistorico()
+
 
 	fmt.Printf("[INTEGRADOR] Recebido do Sensor %d | Temp: %.1f°C | Status da Memória Atualizado\n", 
 		leitura.EquipamentoID, leitura.Temperatura)
 
 	if leitura.Temperatura > leitura.TempMax {
-		
 		fmt.Printf("[ALERTA] %s %d muito quente! Acionando resfriamento...\n", leitura.TipoEquipamento, leitura.EquipamentoID)
 		enviarComandoParaAtuador("localhost:8081", leitura.EquipamentoID, shared.DiminuirTemperatura)
 		
 	} else if leitura.Temperatura < leitura.TempMin {
-		
 		fmt.Printf("[ALERTA] %s %d muito frio! Acionando aquecimento...\n", leitura.TipoEquipamento, leitura.EquipamentoID)
 		enviarComandoParaAtuador("localhost:8081", leitura.EquipamentoID, shared.AumentarTemperatura)
 		
@@ -98,7 +111,7 @@ func processarTelemetria(payload []byte, addr *net.UDPAddr) {
 
 
 //servidor TCP para se comunicar com o atuador e o cliente
-func iniciarServidorTCP(porta string) {
+/*func iniciarServidorTCP(porta string) {
 	listener, err := net.Listen("tcp", porta)
 	if err != nil {
 		fmt.Println("Erro ao iniciar TCP:", err)
@@ -122,7 +135,7 @@ func iniciarServidorTCP(porta string) {
 	}
 
 	
-}
+}*/
 
 func enviarComandoParaAtuador(enderecoTCP string, id int, acao shared.TipoComando) {
 	conn, err := net.Dial("tcp", enderecoTCP)

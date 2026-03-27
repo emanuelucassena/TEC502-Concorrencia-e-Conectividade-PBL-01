@@ -22,7 +22,9 @@ func handleComando(conn net.Conn, id string) {
 	
 	fmt.Printf(">>> ATUADOR %s RECEBEU COMANDO: %s às %v\n", id, cmd.Tipo, cmd.Timestamp)
 
-	connSensor, err := net.Dial("tcp", "localhost:7001")
+	portaDoSensor := fmt.Sprintf("localhost:%d", 7000 + cmd.EquipamentoID)
+
+	connSensor, err := net.Dial("tcp", portaDoSensor)
 		if err != nil {
 			fmt.Println("[ERRO] Atuador tentou ligar, mas o Sensor não atendeu na porta 7001:", err)
 		} else {
