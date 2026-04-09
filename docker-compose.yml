@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # O CÉREBRO
+  integrador:
+    build:
+      context: .
+      dockerfile: ./integration/Dockerfile
+    command: ./integrador_bin
+    ports:
+      - "9090:9090/udp"
+      - "8080:8080/tcp"
+    environment:
+      - HOST_ATUADOR=atuador:8081
+    networks:
+      - rede_iot
+
+  # A INTERFACE VISUAL
+  cliente:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./cliente:/usr/share/nginx/html
+    networks:
+      - rede_iot
+    depends_on:
+      - integrador
+
+  # A FÍSICA E OS MOTORES
+  atuador:
+    build:
+      context: .
+      dockerfile: ./device/Dockerfile
+    command: ./atuador_bin
+    environment:
+      - ID_ATUADOR=1
+      - PORTA_ATUADOR=8081
+      - TOTAL_EQUIPAMENTOS=5
+    volumes:
+      - ./fisica:/app/fisica  
+    networks:
+      - rede_iot
+
+  # OS SENSORES
+  sensor1:
+    build:
+      context: .
+      dockerfile: ./device/Dockerfile
+    command: ./sensor_bin
+    environment:
+      - ID_SENSOR=1
+      - NOME=Geladeira_1
+      - TIPO_SENSOR=geladeira
+      - TEMP_MIN=2.0
+      - TEMP_MAX=4.5
+      - HOST_INTEGRADOR=integrador:9090
+    volumes:
+      - ./fisica:/app/fisica 
+    networks:
+      - rede_iot
+    depends_on: [integrador, atuador]
+
+  sensor2:
+    build:
+      context: .
+      dockerfile: ./device/Dockerfile
+    command: ./sensor_bin
+    environment:
+      - ID_SENSOR=2
+      - NOME=Geladeira_2
+      - TIPO_SENSOR=geladeira
+      - TEMP_MIN=1.0
+      - TEMP_MAX=3.0
+      - HOST_INTEGRADOR=integrador:9090
+    volumes:
+      - ./fisica:/app/fisica
+    networks:
+      - rede_iot
+    depends_on: [integrador, atuador]
+
+  sensor3:
+    build:
+      context: .
+      dockerfile: ./device/Dockerfile
+    command: ./sensor_bin
+    environment:
+      - ID_SENSOR=3
+      - NOME=Geladeira_3
+      - TIPO_SENSOR=geladeira
+      - TEMP_MIN=3.0
+      - TEMP_MAX=5.0
+      - HOST_INTEGRADOR=integrador:9090
+    volumes:
+      - ./fisica:/app/fisica
+    networks:
+      - rede_iot
+    depends_on: [integrador, atuador]
+
+  sensor4:
+    build:
+      context: .
+      dockerfile: ./device/Dockerfile
+    command: ./sensor_bin
+    environment:
+      - ID_SENSOR=4
+      - NOME=Freezer_4
+      - TIPO_SENSOR=freezer
+      - TEMP_MIN=-18.0
+      - TEMP_MAX=-15.0
+      - HOST_INTEGRADOR=integrador:9090
+    volumes:
+      - ./fisica:/app/fisica
+    networks:
+      - rede_iot
+    depends_on: [integrador, atuador]
+
+  sensor5:
+    build:
+      context: .
+      dockerfile: ./device/Dockerfile
+    command: ./sensor_bin
+    environment:
+      - ID_SENSOR=5
+      - NOME=Freezer_5
+      - TIPO_SENSOR=freezer
+      - TEMP_MIN=-20.0
+      - TEMP_MAX=-10.0
+      - HOST_INTEGRADOR=integrador:9090
+    volumes:
+      - ./fisica:/app/fisica
+    networks:
+      - rede_iot
+    depends_on: [integrador, atuador]
+
+networks:
+  rede_iot:
+    driver: bridge

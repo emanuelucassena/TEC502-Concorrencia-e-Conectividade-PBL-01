@@ -1,52 +1,85 @@
 package main
 
-import(
+import (
 	"encoding/json"
 	"fmt"
 	"net"
 	"os"
+	"strconv"
+	"strings"
+	"time"
+	"math/rand"
 	"rota-das-coisas/shared"
 )
 
+var estadoCompressores = make(map[int]bool)
 
-func handleComando(conn net.Conn, id string) {
-	defer conn.Close()
-	var cmd shared.Comando
+// Goroutine que altera o arquivo simulando o mundo real
+func simularFisicaDoAmbiente() {
+	os.MkdirAll("fisica", os.ModePerm)
 	
-	decoder := json.NewDecoder(conn)
-	if err := decoder.Decode(&cmd); err != nil {
-		fmt.Printf("Erro ao decodificar comando para Atuador %s: %v\n", id, err)
-		return
-	}
+	for {
+		// Varre todos os equipamentos que o atuador conhece e simula a física neles
+		for id, ligado := range estadoCompressores {
+			nomeArquivo := fmt.Sprintf("fisica/ambiente_%d.txt", id)
+			data, err := os.ReadFile(nomeArquivo)
+			if err != nil { continue }
 
-	
-	fmt.Printf(">>> ATUADOR %s RECEBEU COMANDO: %s às %v\n", id, cmd.Tipo, cmd.Timestamp)
+			tempAtual, errParse := strconv.ParseFloat(strings.TrimSpace(string(data)), 64)
+			if errParse != nil { continue }
 
-	portaDoSensor := fmt.Sprintf("localhost:%d", 7000 + cmd.EquipamentoID)
+			// Mesma lógica randômica que você usava no shared.Equipamento
+			chance := rand.Float64()
+			if ligado {
+				if chance < 0.60 { tempAtual -= 0.3 } else { tempAtual -= 0.1 }
+			} else {
+				if chance < 0.60 { tempAtual += 0.3 } else { tempAtual += 0.1 }
+			}
 
-	connSensor, err := net.Dial("tcp", portaDoSensor)
-		if err != nil {
-			fmt.Println("[ERRO] Atuador tentou ligar, mas o Sensor não atendeu na porta 7001:", err)
-		} else {
-			
-			
-			
-			json.NewEncoder(connSensor).Encode(cmd)
-			connSensor.Close()
-			
-			fmt.Println(">>> ATUADOR REPASSOU A ORDEM FISICA PARA O SENSOR COM SUCESSO!")
+			// Escreve de volta no arquivo
+			os.WriteFile(nomeArquivo, []byte(fmt.Sprintf("%.2f", tempAtual)), 0644)
 		}
-	
-	if cmd.Tipo == shared.DesligarEquipamento {
-		fmt.Printf("!!! AVISO: Equipamento %d sendo DESLIGADO !!!\n", cmd.EquipamentoID)
+		time.Sleep(1 * time.Second)
 	}
 }
 
-func main(){
+func handleComando(conn net.Conn, idAtuador string) {
+	defer conn.Close()
+	var cmd shared.Comando
 	
+	if err := json.NewDecoder(conn).Decode(&cmd); err != nil {
+		fmt.Printf("Erro ao decodificar comando: %v\n", err)
+		return
+	}
+
+	fmt.Printf("\n>>> ATUADOR %s RECEBEU COMANDO: %s para Equip %d\n", idAtuador, cmd.Tipo, cmd.EquipamentoID)
+
+	// Executa a ação fisicamente (atualiza o mapa para a Goroutine processar)
+	if cmd.Tipo == shared.DiminuirTemperatura {
+		estadoCompressores[cmd.EquipamentoID] = true
+		fmt.Println("[FÍSICA] Ligando motor para resfriar...")
+	} else if cmd.Tipo == shared.AumentarTemperatura || cmd.Tipo == shared.DesligarEquipamento {
+		estadoCompressores[cmd.EquipamentoID] = false
+		fmt.Println("[FÍSICA] Desligando motor. Aquecimento natural...")
+	}
+}
+
+func main() {
 	idAtuador := os.Getenv("ID_ATUADOR")
 	porta := os.Getenv("PORTA_ATUADOR")
+	if porta == "" { porta = "8081" }
 
+	
+	totalEquipamentos, err := strconv.Atoi(os.Getenv("TOTAL_EQUIPAMENTOS"))
+	if err != nil || totalEquipamentos == 0 {
+		totalEquipamentos = 2 
+	}
+
+	for i := 1; i <= totalEquipamentos; i++ {
+		estadoCompressores[i] = false
+	}
+
+	go simularFisicaDoAmbiente()
 
 	listener, err := net.Listen("tcp", ":" + porta)
 	if err != nil {
@@ -55,18 +88,11 @@ func main(){
 	}
 	defer listener.Close()
 
-	fmt.Printf("Atuador %s pronto e ouvindo na porta %s...\n", idAtuador, porta)
+	fmt.Printf("🦾 Atuador %s pronto e controlando a física na porta %s...\n", idAtuador, porta)
 
-	for{
+	for {
 		conn, err := listener.Accept()
-		if err != nil {
-			fmt.Println("Erro ao aceitar conexão:", err)
-			continue
-		}
-
+		if err != nil { continue }
 		go handleComando(conn, idAtuador)
 	}
-
-
-	
 }
