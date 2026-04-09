@@ -35,9 +35,7 @@ func main() {
 }
 
 func iniciarServidorHTTP(porta string) {
-	// =========================================================
-	// ROTA 1: O "Tubo" de streaming (A que você acabou de mandar)
-	// =========================================================
+	
 	http.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "text/event-stream")
@@ -61,22 +59,18 @@ func iniciarServidorHTTP(porta string) {
 		}
 	})
 
-	// =========================================================
-	// ROTA 2: A central de comandos (A nova, blindada contra CORS)
-	// =========================================================
+
 	http.HandleFunc("/comando", func(w http.ResponseWriter, r *http.Request) {
 		// 1. CARIMBANDO O PASSAPORTE (CORS) - Tem que ser a primeira coisa!
 		w.Header().Set("Access-Control-Allow-Origin", "*") // Aceita cliques do localhost:3000 ou qualquer outro
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
-		// 2. O LEÃO DE CHÁCARA: Responde à requisição fantasma do navegador
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 
-		// 3. COMANDO REAL DO BOTÃO
 		var req struct {
 			EquipamentoID int    `json:"equipamento_id"`
 			Acao          string `json:"acao"`
@@ -87,25 +81,19 @@ func iniciarServidorHTTP(porta string) {
 			return 
 		}
 
-		// Traduz o comando do Front para a Física
 		tipoCmd := shared.AumentarTemperatura 
 		if req.Acao == "resfriar" {
 			tipoCmd = shared.DiminuirTemperatura 
 		}
 
-		// Envia a ordem para o Atuador operar o motor!
 		hostAtuador := os.Getenv("HOST_ATUADOR")
 		if hostAtuador == "" { hostAtuador = "atuador:8081" }
 		enviarComandoParaAtuador(hostAtuador, req.EquipamentoID, tipoCmd)
 		
-		// Responde para o Frontend que deu tudo certo
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"status": "sucesso"}`)
 	})
 
-	// =========================================================
-	// INICIA O SERVIDOR COM AS DUAS ROTAS
-	// =========================================================
 	fmt.Printf("[HTTP] API (Comandos) e Streaming (Gráficos) operantes na porta %s\n", porta)
 	http.ListenAndServe(porta, nil)
 }

@@ -4,5 +4,6 @@ ENV GOPROXY=off
 COPY . .
 RUN rm -f go.mod go.sum
 RUN go mod init rota-das-coisas
-RUN go build -o integrador_bin ./integration
+RUN go build -o integrador_bin ./integration/main.go
 RUN chmod +x integrador_bin
+

@@ -47,9 +47,7 @@
             text-transform: uppercase; letter-spacing: 2px; 
         }
 
-        /* ==========================================
-           NOVAS BADGES DE ALERTA NEON
-        ========================================== */
+       
         .status-badge {
             display: inline-block; padding: 4px 10px; border-radius: 12px;
             font-size: 0.75rem; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;
@@ -121,18 +119,17 @@
                 
                 const temperaturas = ultimasLeituras.map(l => l.temperatura);
                 
-                // Pegando a leitura mais recente com todos os dados
+                
                 const leituraAtual = ultimasLeituras[ultimasLeituras.length - 1];
                 const tempAtual = leituraAtual.temperatura;
                 
-                // Lidando com a forma que o Go manda o JSON (pode ser min/max minúsculo ou maiúsculo)
                 const tempMax = leituraAtual.temp_max || leituraAtual.TempMax;
                 const tempMin = leituraAtual.temp_min || leituraAtual.TempMin;
 
                 const nomeEquipamento = leituras[0].tipo_equipamento.toUpperCase() + " " + idEquipamento;
                 const cor = cores[(idEquipamento - 1) % cores.length];
 
-                // --- LÓGICA DO ALERTA ---
+                
                 let textoAlerta = "✅ Sistema Estável";
                 let classeAlerta = "status-ok";
 
@@ -190,10 +187,10 @@
                         }
                     });
                 } else {
-                    // --- ATUALIZA TUDO EM TEMPO REAL ---
+                    
                     document.getElementById(`temp_atual_${idEquipamento}`).innerText = `${tempAtual.toFixed(1)}°C`;
                     
-                    // Atualiza a Badge de Alerta!
+                    
                     const badge = document.getElementById(`alerta_${idEquipamento}`);
                     badge.innerText = textoAlerta;
                     badge.className = `status-badge ${classeAlerta}`;

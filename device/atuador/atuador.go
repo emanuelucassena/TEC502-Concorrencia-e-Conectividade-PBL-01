@@ -28,7 +28,7 @@ func simularFisicaDoAmbiente() {
 			tempAtual, errParse := strconv.ParseFloat(strings.TrimSpace(string(data)), 64)
 			if errParse != nil { continue }
 
-			// Mesma lógica randômica que você usava no shared.Equipamento
+			
 			chance := rand.Float64()
 			if ligado {
 				if chance < 0.60 { tempAtual -= 0.3 } else { tempAtual -= 0.1 }
@@ -36,7 +36,7 @@ func simularFisicaDoAmbiente() {
 				if chance < 0.60 { tempAtual += 0.3 } else { tempAtual += 0.1 }
 			}
 
-			// Escreve de volta no arquivo
+			
 			os.WriteFile(nomeArquivo, []byte(fmt.Sprintf("%.2f", tempAtual)), 0644)
 		}
 		time.Sleep(1 * time.Second)
@@ -88,7 +88,7 @@ func main() {
 	}
 	defer listener.Close()
 
-	fmt.Printf("🦾 Atuador %s pronto e controlando a física na porta %s...\n", idAtuador, porta)
+	fmt.Printf("Atuador %s pronto e controlando a física na porta %s...\n", idAtuador, porta)
 
 	for {
 		conn, err := listener.Accept()

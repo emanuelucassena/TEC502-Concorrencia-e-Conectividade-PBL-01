@@ -1,7 +1,4 @@
-version: '3.8'
-
 services:
-  # O CÉREBRO
   integrador:
     build:
       context: .
@@ -15,19 +12,17 @@ services:
     networks:
       - rede_iot
 
-  # A INTERFACE VISUAL
   cliente:
     image: nginx:alpine
     ports:
       - "80:80"
     volumes:
-      - ./cliente:/usr/share/nginx/html
+      - ./client:/usr/share/nginx/html
     networks:
       - rede_iot
     depends_on:
       - integrador
 
-  # A FÍSICA E OS MOTORES
   atuador:
     build:
       context: .
@@ -38,11 +33,10 @@ services:
       - PORTA_ATUADOR=8081
       - TOTAL_EQUIPAMENTOS=5
     volumes:
-      - ./fisica:/app/fisica  
+      - ./fisica:/app/fisica
     networks:
       - rede_iot
 
-  # OS SENSORES
   sensor1:
     build:
       context: .
@@ -56,7 +50,7 @@ services:
       - TEMP_MAX=4.5
       - HOST_INTEGRADOR=integrador:9090
     volumes:
-      - ./fisica:/app/fisica 
+      - ./fisica:/app/fisica
     networks:
       - rede_iot
     depends_on: [integrador, atuador]
