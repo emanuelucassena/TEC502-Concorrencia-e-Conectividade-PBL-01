@@ -1,0 +1,28 @@
+services:
+  integrador:
+    build:
+      context: .
+      dockerfile: ./integration/Dockerfile
+    command: ./integrador_bin
+    ports:
+      - "9090:9090/udp"
+      - "8080:8080/tcp"
+    environment:
+      - HOST_ATUADOR=atuador:<172.16.103.3>:8081
+    networks:
+      - rede_iot
+
+  cliente:
+    image: nginx:alpine
+    ports:
+      - "8082:80"
+    volumes:
+      - ./client:/usr/share/nginx/html
+    networks:
+      - rede_iot
+    depends_on:
+      - integrador
+
+networks:
+  rede_iot:
+    driver: bridge

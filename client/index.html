@@ -205,7 +205,7 @@
         async function enviarComando(idEquipamento, acao) {
             console.warn(`[FRONTEND] Forçando ${acao.toUpperCase()} na Máquina ${idEquipamento}...`);
             try {
-                await fetch('http://localhost:8080/comando', {
+                await fetch('172.16.103.3:8080/comando', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ equipamento_id: idEquipamento, acao: acao })

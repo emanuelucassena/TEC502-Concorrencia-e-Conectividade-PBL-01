@@ -5,24 +5,24 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"rota-das-coisas/shared"
 	"strconv"
 	"strings"
 	"time"
-	"rota-das-coisas/shared"
 )
 
 // Função que lê a "física" do arquivo de texto
 func lerTemperaturaFisica(idSensor int, tempInicial float64) float64 {
 	nomeArquivo := fmt.Sprintf("fisica/ambiente_%d.txt", idSensor)
 	data, err := os.ReadFile(nomeArquivo)
-	
+
 	if err != nil {
 		// Se o arquivo não existe, cria um com a temperatura média inicial
 		os.MkdirAll("fisica", os.ModePerm)
 		os.WriteFile(nomeArquivo, []byte(fmt.Sprintf("%.2f", tempInicial)), 0644)
 		return tempInicial
 	}
-	
+
 	tempStr := strings.TrimSpace(string(data))
 	temp, err := strconv.ParseFloat(tempStr, 64)
 	if err != nil {
@@ -40,7 +40,7 @@ func main() {
 
 	hostIntegrador := os.Getenv("HOST_INTEGRADOR")
 	if hostIntegrador == "" {
-		hostIntegrador = "localhost:9090"
+		hostIntegrador = "172.16.103.3:9090"
 	}
 
 	conn, err := net.Dial("udp", hostIntegrador)
@@ -74,7 +74,7 @@ func main() {
 
 		jsonBytes, _ := json.Marshal(mensagem)
 		conn.Write(jsonBytes)
-		
+
 		fmt.Printf("Sensor %d -> Lendo da Física: %.1f°C\n", idSensor, tempAtual)
 		time.Sleep(1 * time.Second)
 	}

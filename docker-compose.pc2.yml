@@ -1,33 +1,11 @@
 services:
-  integrador:
-    build:
-      context: .
-      dockerfile: ./integration/Dockerfile
-    command: ./integrador_bin
-    ports:
-      - "9090:9090/udp"
-      - "8080:8080/tcp"
-    environment:
-      - HOST_ATUADOR=atuador:8081
-    networks:
-      - rede_iot
-
-  cliente:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./client:/usr/share/nginx/html
-    networks:
-      - rede_iot
-    depends_on:
-      - integrador
-
   atuador:
     build:
       context: .
       dockerfile: ./device/Dockerfile
     command: ./atuador_bin
+    ports:
+      - "8081:8081"
     environment:
       - ID_ATUADOR=1
       - PORTA_ATUADOR=8081
@@ -48,12 +26,12 @@ services:
       - TIPO_SENSOR=geladeira
       - TEMP_MIN=2.0
       - TEMP_MAX=4.5
-      - HOST_INTEGRADOR=integrador:9090
+      - HOST_INTEGRADOR=<IP_DO_PC1>:9090
     volumes:
       - ./fisica:/app/fisica
     networks:
       - rede_iot
-    depends_on: [integrador, atuador]
+    depends_on: [atuador]
 
   sensor2:
     build:
@@ -66,12 +44,12 @@ services:
       - TIPO_SENSOR=geladeira
       - TEMP_MIN=1.0
       - TEMP_MAX=3.0
-      - HOST_INTEGRADOR=integrador:9090
+      - HOST_INTEGRADOR=<IP_DO_PC1>:9090
     volumes:
       - ./fisica:/app/fisica
     networks:
       - rede_iot
-    depends_on: [integrador, atuador]
+    depends_on: [atuador]
 
   sensor3:
     build:
@@ -84,12 +62,12 @@ services:
       - TIPO_SENSOR=geladeira
       - TEMP_MIN=3.0
       - TEMP_MAX=5.0
-      - HOST_INTEGRADOR=integrador:9090
+      - HOST_INTEGRADOR=<IP_DO_PC1>:9090
     volumes:
       - ./fisica:/app/fisica
     networks:
       - rede_iot
-    depends_on: [integrador, atuador]
+    depends_on: [atuador]
 
   sensor4:
     build:
@@ -102,12 +80,12 @@ services:
       - TIPO_SENSOR=freezer
       - TEMP_MIN=-18.0
       - TEMP_MAX=-15.0
-      - HOST_INTEGRADOR=integrador:9090
+      - HOST_INTEGRADOR=<IP_DO_PC1>:9090
     volumes:
       - ./fisica:/app/fisica
     networks:
       - rede_iot
-    depends_on: [integrador, atuador]
+    depends_on: [atuador]
 
   sensor5:
     build:
@@ -120,12 +98,12 @@ services:
       - TIPO_SENSOR=freezer
       - TEMP_MIN=-20.0
       - TEMP_MAX=-10.0
-      - HOST_INTEGRADOR=integrador:9090
+      - HOST_INTEGRADOR=<172.16.103.2>:9090
     volumes:
       - ./fisica:/app/fisica
     networks:
       - rede_iot
-    depends_on: [integrador, atuador]
+    depends_on: [atuador]
 
 networks:
   rede_iot:
