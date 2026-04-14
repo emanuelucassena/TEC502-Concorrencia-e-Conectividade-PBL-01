@@ -26,7 +26,7 @@ services:
       - TIPO_SENSOR=geladeira
       - TEMP_MIN=2.0
       - TEMP_MAX=4.5
-      - HOST_INTEGRADOR=<IP_DO_PC1>:9090
+      - HOST_INTEGRADOR=172.16.103.2:9090
     volumes:
       - ./fisica:/app/fisica
     networks:
@@ -44,7 +44,7 @@ services:
       - TIPO_SENSOR=geladeira
       - TEMP_MIN=1.0
       - TEMP_MAX=3.0
-      - HOST_INTEGRADOR=<IP_DO_PC1>:9090
+      - HOST_INTEGRADOR=172.16.103.2:9090
     volumes:
       - ./fisica:/app/fisica
     networks:
@@ -62,7 +62,7 @@ services:
       - TIPO_SENSOR=geladeira
       - TEMP_MIN=3.0
       - TEMP_MAX=5.0
-      - HOST_INTEGRADOR=<IP_DO_PC1>:9090
+      - HOST_INTEGRADOR=172.16.103.2:9090
     volumes:
       - ./fisica:/app/fisica
     networks:
@@ -80,7 +80,7 @@ services:
       - TIPO_SENSOR=freezer
       - TEMP_MIN=-18.0
       - TEMP_MAX=-15.0
-      - HOST_INTEGRADOR=<IP_DO_PC1>:9090
+      - HOST_INTEGRADOR=172.16.103.2:9090
     volumes:
       - ./fisica:/app/fisica
     networks:
@@ -98,7 +98,7 @@ services:
       - TIPO_SENSOR=freezer
       - TEMP_MIN=-20.0
       - TEMP_MAX=-10.0
-      - HOST_INTEGRADOR=<172.16.103.2>:9090
+      - HOST_INTEGRADOR=172.16.103.2:9090
     volumes:
       - ./fisica:/app/fisica
     networks:

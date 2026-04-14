@@ -5,94 +5,114 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strconv"
-	"strings"
-	"time"
-	"math/rand"
+	"path/filepath"
 	"rota-das-coisas/shared"
+	"strconv"
+	"sync"
+	"time"
 )
 
-var estadoCompressores = make(map[int]bool)
-
-// Goroutine que altera o arquivo simulando o mundo real
-func simularFisicaDoAmbiente() {
-	os.MkdirAll("fisica", os.ModePerm)
-	
-	for {
-		// Varre todos os equipamentos que o atuador conhece e simula a física neles
-		for id, ligado := range estadoCompressores {
-			nomeArquivo := fmt.Sprintf("fisica/ambiente_%d.txt", id)
-			data, err := os.ReadFile(nomeArquivo)
-			if err != nil { continue }
-
-			tempAtual, errParse := strconv.ParseFloat(strings.TrimSpace(string(data)), 64)
-			if errParse != nil { continue }
-
-			
-			chance := rand.Float64()
-			if ligado {
-				if chance < 0.60 { tempAtual -= 0.3 } else { tempAtual -= 0.1 }
-			} else {
-				if chance < 0.60 { tempAtual += 0.3 } else { tempAtual += 0.1 }
-			}
-
-			
-			os.WriteFile(nomeArquivo, []byte(fmt.Sprintf("%.2f", tempAtual)), 0644)
-		}
-		time.Sleep(1 * time.Second)
-	}
+// Estrutura para manter o estado interno de cada geladeira
+type EstadoGeladeira struct {
+	Temperatura float64
+	MotorLigado bool
+	Modo        shared.TipoComando // resfriar ou aquecer
 }
 
-func handleComando(conn net.Conn, idAtuador string) {
-	defer conn.Close()
-	var cmd shared.Comando
-	
-	if err := json.NewDecoder(conn).Decode(&cmd); err != nil {
-		fmt.Printf("Erro ao decodificar comando: %v\n", err)
-		return
-	}
-
-	fmt.Printf("\n>>> ATUADOR %s RECEBEU COMANDO: %s para Equip %d\n", idAtuador, cmd.Tipo, cmd.EquipamentoID)
-
-	// Executa a ação fisicamente (atualiza o mapa para a Goroutine processar)
-	if cmd.Tipo == shared.DiminuirTemperatura {
-		estadoCompressores[cmd.EquipamentoID] = true
-		fmt.Println("[FÍSICA] Ligando motor para resfriar...")
-	} else if cmd.Tipo == shared.AumentarTemperatura || cmd.Tipo == shared.DesligarEquipamento {
-		estadoCompressores[cmd.EquipamentoID] = false
-		fmt.Println("[FÍSICA] Desligando motor. Aquecimento natural...")
-	}
-}
+var (
+	estados = make(map[int]*EstadoGeladeira)
+	mutex   sync.Mutex
+)
 
 func main() {
-	idAtuador := os.Getenv("ID_ATUADOR")
 	porta := os.Getenv("PORTA_ATUADOR")
-	if porta == "" { porta = "8081" }
-
-	
-	totalEquipamentos, err := strconv.Atoi(os.Getenv("TOTAL_EQUIPAMENTOS"))
-	if err != nil || totalEquipamentos == 0 {
-		totalEquipamentos = 2 
+	if porta == "" {
+		porta = "8081"
 	}
 
-	for i := 1; i <= totalEquipamentos; i++ {
-		estadoCompressores[i] = false
+	totalStr := os.Getenv("TOTAL_EQUIPAMENTOS")
+	total, _ := strconv.Atoi(totalStr)
+	if total == 0 {
+		total = 5
 	}
 
-	go simularFisicaDoAmbiente()
+	// Inicializa a física para cada equipamento
+	for i := 1; i <= total; i++ {
+		estados[i] = &EstadoGeladeira{
+			Temperatura: 25.0, // Temperatura inicial ambiente
+			MotorLigado: false,
+		}
+		// Garante que o diretório física existe
+		os.MkdirAll("fisica", 0755)
+	}
 
-	listener, err := net.Listen("tcp", ":" + porta)
+	// Loop da Física: Roda em background atualizando os arquivos .txt
+	go loopFisica(total)
+
+	// Servidor TCP: Escuta comandos do Integrador
+	ln, err := net.Listen("tcp", ":"+porta)
 	if err != nil {
-		fmt.Printf("Erro ao iniciar o Atuador %s: %v\n", idAtuador, err)
+		fmt.Printf("[ERRO] Falha ao iniciar Atuador: %v\n", err)
 		return
 	}
-	defer listener.Close()
-
-	fmt.Printf("Atuador %s pronto e controlando a física na porta %s...\n", idAtuador, porta)
+	fmt.Printf("[ATUADOR] Ouvindo comandos na porta %s...\n", porta)
 
 	for {
-		conn, err := listener.Accept()
-		if err != nil { continue }
-		go handleComando(conn, idAtuador)
+		conn, err := ln.Accept()
+		if err != nil {
+			continue
+		}
+		go lidarComComando(conn)
+	}
+}
+
+func lidarComComando(conn net.Conn) {
+	defer conn.Close()
+	var cmd shared.Comando
+	if err := json.NewDecoder(conn).Decode(&cmd); err != nil {
+		return
+	}
+
+	mutex.Lock()
+	if est, ok := estados[cmd.EquipamentoID]; ok {
+		est.MotorLigado = true
+		est.Modo = cmd.Tipo
+		fmt.Printf(">>> ATUADOR: Equip %d agora está em modo %s\n", cmd.EquipamentoID, cmd.Tipo)
+	}
+	mutex.Unlock()
+}
+
+func loopFisica(total int) {
+	for {
+		mutex.Lock()
+		for id, est := range estados {
+			// Lógica da Física
+			var mudanca float64
+
+			if est.MotorLigado {
+				// Se o motor está ligado, a mudança é forte
+				if est.Modo == shared.DiminuirTemperatura {
+					mudanca = -1.5 // Resfriamento rápido
+				} else {
+					mudanca = 1.5 // Aquecimento rápido
+				}
+				// Chance de desligar o motor se chegar perto de um valor neutro
+				// (Opcional, o integrador deve controlar isso)
+			} else {
+				// Calor ambiente (Inércia térmica: tende a subir para 30°C lentamente)
+				if est.Temperatura < 30.0 {
+					mudanca = 0.1
+				}
+			}
+
+			est.Temperatura += mudanca
+
+			// Escreve no arquivo .txt para os sensores lerem
+			filename := filepath.Join("fisica", fmt.Sprintf("ambiente_%d.txt", id))
+			os.WriteFile(filename, []byte(fmt.Sprintf("%.2f", est.Temperatura)), 0644)
+		}
+		mutex.Unlock()
+
+		time.Sleep(1 * time.Second) // Ciclo da física
 	}
 }

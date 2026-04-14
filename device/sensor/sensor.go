@@ -40,7 +40,7 @@ func main() {
 
 	hostIntegrador := os.Getenv("HOST_INTEGRADOR")
 	if hostIntegrador == "" {
-		hostIntegrador = "172.16.103.3:9090"
+		hostIntegrador = "172.16.103.2:9090"
 	}
 
 	conn, err := net.Dial("udp", hostIntegrador)

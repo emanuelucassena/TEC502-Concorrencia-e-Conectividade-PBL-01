@@ -102,7 +102,8 @@
         const cores = ['#00e5ff', '#b2ff59', '#ffff00', '#ff4081', '#e040fb'];
         const container = document.getElementById('dashboard');
 
-        const fonteDeDados = new EventSource('http://localhost:8080/stream');
+        // CORREÇÃO 1: Apontar para o IP do PC 1 (Integrador), na porta 8080 e na rota /stream
+        const fonteDeDados = new EventSource('http://172.16.103.2:8080/stream');
 
         fonteDeDados.onmessage = function(evento) {
             const historico = JSON.parse(evento.data);
@@ -119,7 +120,6 @@
                 
                 const temperaturas = ultimasLeituras.map(l => l.temperatura);
                 
-                
                 const leituraAtual = ultimasLeituras[ultimasLeituras.length - 1];
                 const tempAtual = leituraAtual.temperatura;
                 
@@ -129,7 +129,6 @@
                 const nomeEquipamento = leituras[0].tipo_equipamento.toUpperCase() + " " + idEquipamento;
                 const cor = cores[(idEquipamento - 1) % cores.length];
 
-                
                 let textoAlerta = "✅ Sistema Estável";
                 let classeAlerta = "status-ok";
 
@@ -146,7 +145,6 @@
                     card.className = 'card';
                     card.style.setProperty('--cor-lateral', cor);
                     
-                    // Adicionamos a <div id="alerta_X"> logo abaixo do título!
                     card.innerHTML = `
                         <div class="card-header">
                             <div class="titulo-box">
@@ -187,9 +185,7 @@
                         }
                     });
                 } else {
-                    
                     document.getElementById(`temp_atual_${idEquipamento}`).innerText = `${tempAtual.toFixed(1)}°C`;
-                    
                     
                     const badge = document.getElementById(`alerta_${idEquipamento}`);
                     badge.innerText = textoAlerta;
@@ -205,7 +201,8 @@
         async function enviarComando(idEquipamento, acao) {
             console.warn(`[FRONTEND] Forçando ${acao.toUpperCase()} na Máquina ${idEquipamento}...`);
             try {
-                await fetch('172.16.103.3:8080/comando', {
+                // CORREÇÃO 2: Adicionado o http:// e apontado para o PC 1 (Integrador)
+                await fetch('http://172.16.103.2:8080/comando', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ equipamento_id: idEquipamento, acao: acao })

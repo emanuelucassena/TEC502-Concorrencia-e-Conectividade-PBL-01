@@ -8,7 +8,7 @@ services:
       - "9090:9090/udp"
       - "8080:8080/tcp"
     environment:
-      - HOST_ATUADOR=atuador:<172.16.103.3>:8081
+      - HOST_ATUADOR=atuador=172.16.103.3:8081
     networks:
       - rede_iot
 
